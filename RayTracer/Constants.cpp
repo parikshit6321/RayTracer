@@ -1,7 +1,7 @@
 #include "Constants.h"
 
-int cWindowHeight = 120;
-int cWindowWidth = 160;
+int cWindowHeight = 480;
+int cWindowWidth = 640;
 
 double cAmbientLight = 0.2;
 double cAccuracy = 0.000001;

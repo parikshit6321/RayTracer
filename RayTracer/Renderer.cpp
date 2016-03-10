@@ -3,6 +3,9 @@
 
 Renderer::Renderer() : _X(1.0, 0.0, 0.0), _Y(0.0, 1.0, 0.0), _Z(0.0, 0.0, 1.0), _O(0.0, 0.0, 0.0)
 {
+	_dpi = 72;
+	_aspectRatio = (double)cWindowWidth / (double)cWindowHeight;
+
 	_currentBMPName = new char[20];
 	strcpy_s(_currentBMPName, 19, cBuffer1);
 
@@ -24,10 +27,15 @@ Renderer::Renderer() : _X(1.0, 0.0, 0.0), _Y(0.0, 1.0, 0.0), _Z(0.0, 0.0, 1.0), 
 	_camera.SetCamRight(camright);
 	_camera.SetCamDown(camdown);
 
+	Logger::Log("Renderer initialized.");
+}
+
+void Renderer::Initialize(void)
+{
 	Material prettyGreenMaterial;
 	prettyGreenMaterial.SetColor(Color(0.5, 1.0, 0.5));
 	prettyGreenMaterial.SetSpecularIntensity(0.3f);
-	
+
 	Material maroonMaterial;
 	maroonMaterial.SetColor(Color(0.5, 0.25, 0.25));
 
@@ -40,11 +48,6 @@ Renderer::Renderer() : _X(1.0, 0.0, 0.0), _Y(0.0, 1.0, 0.0), _Z(0.0, 0.0, 1.0), 
 	_sceneObjects.push_back(new Sphere(_O.Add(Vect(0.0, 0.02, 0.0)), 1.0f, prettyGreenMaterial));
 	_sceneObjects.push_back(new Sphere(_O.Add(Vect(2.0, 0.0, -3.0)), 1.0f, reflectiveMaterial));
 	_sceneObjects.push_back(new Plane(_Y, -1.0, maroonMaterial));
-}
-
-void Renderer::Initialize(void)
-{
-	
 }
 
 void Renderer::SwapBuffers(void)
@@ -98,40 +101,42 @@ void Renderer::PostProcess(void)
 	}
 }
 
+void Renderer::SetPixelColor(int x, int y)
+{
+	
+}
+
 void Renderer::Render(int frameNo)
 {
+	Logger::Log("Rendering frame.");
+
 	int thisone;
 
-	int dpi = 72;
-	double aspectratio = (double)cWindowWidth / (double)cWindowHeight;
-
 	_sceneObjects.at(0)->Translate(Vect(0.0, (0.02 * sin(frameNo / 50)), 0.0));
-
-	Logger::Log("Logging.");
-
-	double xamnt, yamnt;
-	Vect camRayOrigin = _camera.GetCamPos();
 
 	for (int x = 0; x < cWindowWidth; ++x)
 	{
 		for (int y = 0; y < cWindowHeight; ++y)
 		{
+			double xamnt, yamnt;
+			Vect camRayOrigin = _camera.GetCamPos();
+
 			std::vector<double> intersections;
 
-			thisone = y * cWindowWidth + x;
+			int thisone = y * cWindowWidth + x;
 
 			// Start with no anti-aliasing.
 			if (cWindowWidth > cWindowHeight)
 			{
 				// The image is wider than it is tall.
-				xamnt = ((x + 0.5) / cWindowWidth) * aspectratio - (((cWindowWidth - cWindowHeight) / (double)cWindowHeight) / 2);
+				xamnt = ((x + 0.5) / cWindowWidth) * _aspectRatio - (((cWindowWidth - cWindowHeight) / (double)cWindowHeight) / 2);
 				yamnt = ((cWindowHeight - y) + 0.5) / cWindowHeight;
 			}
 			else if (cWindowHeight > cWindowWidth)
 			{
 				// The image is taller than it is wide.
 				xamnt = (x + 0.5) / cWindowWidth;
-				yamnt = (((cWindowHeight - y) + 0.5) / cWindowHeight) / aspectratio - (((cWindowHeight - cWindowWidth) / (double)cWindowWidth) / 2);
+				yamnt = (((cWindowHeight - y) + 0.5) / cWindowHeight) / _aspectRatio - (((cWindowHeight - cWindowWidth) / (double)cWindowWidth) / 2);
 			}
 			else
 			{
@@ -174,7 +179,7 @@ void Renderer::Render(int frameNo)
 
 	PostProcess();
 
-	SaveBMP(_currentBMPName, cWindowWidth, cWindowHeight, dpi, _pixels);
+	SaveBMP(_currentBMPName, cWindowWidth, cWindowHeight, _dpi, _pixels);
 }
 
 Color Renderer::GetColorAt(Vect intersectionPosition, Vect intersectionRayDirection, int indexOfWinningObject,

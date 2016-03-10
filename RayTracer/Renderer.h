@@ -34,6 +34,7 @@ private:
 
 	Color GetColorAt(Vect intersectionPosition, Vect intersectionRayDirection, int indexOfWinningObject,
 		double accuracy, double ambientLight);
+	void SetPixelColor(int x, int y);
 	void PostProcess(void);
 	void SwapBuffers(void);
 	void SaveBMP(const char* filename, int w, int h, int dpi, Color * data);
@@ -52,4 +53,7 @@ private:
 	Vect						_Y;
 	Vect						_Z;
 	Vect						_O;
+
+	int							_dpi;
+	double						_aspectRatio;
 };

@@ -16,6 +16,9 @@ TCHAR szTitle[MAX_LOADSTRING];					// The title bar text
 TCHAR szWindowClass[MAX_LOADSTRING];			// the main window class name
 Renderer renderer;
 
+float totalDeltaTime = 0.0f;
+int frameNo = 0;
+
 // Forward declarations of functions included in this code module:
 ATOM				MyRegisterClass(HINSTANCE hInstance);
 BOOL				InitInstance(HINSTANCE, int);
@@ -27,9 +30,9 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
                      _In_ LPTSTR    lpCmdLine,
                      _In_ int       nCmdShow)
 {
+	Logger::Initialize();
 	renderer.Initialize();
 	Timer::Initialize();
-	Logger::Initialize();
 
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
@@ -55,8 +58,6 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 	float currTime = prevTime;
 	float deltaTime = 0.0f;
 
-	int frameNo = 0;
-
 	PeekMessage(&msg, NULL, 0, 0, PM_REMOVE);
 
 	// Main message loop:
@@ -68,6 +69,8 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 			DispatchMessage(&msg);
 		}
 
+		++frameNo;
+
 		prevTime = currTime;
 
 		renderer.Render(frameNo);
@@ -77,8 +80,14 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 		currTime = Timer::GetTime();
 		deltaTime = currTime - prevTime;
 
-		++frameNo;
+		totalDeltaTime += deltaTime;
 	}
+
+	float averageDeltaTime = totalDeltaTime / frameNo;
+	std::string fpsString = "Average FPS : " + std::to_string(1.0f / averageDeltaTime);
+	Logger::Log(fpsString.c_str());
+
+	Logger::Log("Ray Tracer shutting down.");
 
 	return (int) msg.wParam;
 }
@@ -132,6 +141,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    {
       return FALSE;
    }
+
+   Logger::Log("Window created successfully.");
 
    drawingWindowHDC = GetDC(hWnd);
 
