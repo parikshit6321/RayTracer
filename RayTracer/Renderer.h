@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <Windows.h>
+#include <thread>
 
 class Renderer
 {
@@ -34,7 +35,7 @@ private:
 
 	Color GetColorAt(Vect intersectionPosition, Vect intersectionRayDirection, int indexOfWinningObject,
 		double accuracy, double ambientLight);
-	void SetPixelColor(int x, int y);
+	void SetPixels(int threadIndex);
 	void PostProcess(void);
 	void SwapBuffers(void);
 	void SaveBMP(const char* filename, int w, int h, int dpi, Color * data);
@@ -56,4 +57,7 @@ private:
 
 	int							_dpi;
 	double						_aspectRatio;
+
+	std::vector<std::thread *>	_threads;
+	int							_numOfThreads;
 };

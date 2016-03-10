@@ -27,7 +27,8 @@ Renderer::Renderer() : _X(1.0, 0.0, 0.0), _Y(0.0, 1.0, 0.0), _Z(0.0, 0.0, 1.0), 
 	_camera.SetCamRight(camright);
 	_camera.SetCamDown(camdown);
 
-	Logger::Log("Renderer initialized.");
+	//_numOfThreads = std::thread::hardware_concurrency();
+	_numOfThreads = 4;
 }
 
 void Renderer::Initialize(void)
@@ -48,6 +49,8 @@ void Renderer::Initialize(void)
 	_sceneObjects.push_back(new Sphere(_O.Add(Vect(0.0, 0.02, 0.0)), 1.0f, prettyGreenMaterial));
 	_sceneObjects.push_back(new Sphere(_O.Add(Vect(2.0, 0.0, -3.0)), 1.0f, reflectiveMaterial));
 	_sceneObjects.push_back(new Plane(_Y, -1.0, maroonMaterial));
+
+	Logger::Log("Renderer initialized.");
 }
 
 void Renderer::SwapBuffers(void)
@@ -101,20 +104,9 @@ void Renderer::PostProcess(void)
 	}
 }
 
-void Renderer::SetPixelColor(int x, int y)
+void Renderer::SetPixels(int threadIndex)
 {
-	
-}
-
-void Renderer::Render(int frameNo)
-{
-	Logger::Log("Rendering frame.");
-
-	int thisone;
-
-	_sceneObjects.at(0)->Translate(Vect(0.0, (0.02 * sin(frameNo / 50)), 0.0));
-
-	for (int x = 0; x < cWindowWidth; ++x)
+	for (int x = (int)(0 + (((float)threadIndex / (float)_numOfThreads) * cWindowWidth)); x < (int)(cWindowWidth * ((float)(threadIndex + 1) / (float)_numOfThreads)); ++x)
 	{
 		for (int y = 0; y < cWindowHeight; ++y)
 		{
@@ -176,8 +168,24 @@ void Renderer::Render(int frameNo)
 			}
 		}
 	}
+}
 
-	PostProcess();
+void Renderer::Render(int frameNo)
+{
+	int thisone;
+
+	_sceneObjects.at(0)->Translate(Vect(0.0, (0.02 * sin(frameNo / 50)), 0.0));
+
+	for (int threadIndex = 0; threadIndex < _numOfThreads; ++threadIndex)
+	{
+		_threads.push_back(new std::thread(&Renderer::SetPixels, this, threadIndex));
+	}
+	for (int threadIndex = 0; threadIndex < _numOfThreads; ++threadIndex)
+	{
+		if (_threads.at(threadIndex)->joinable())
+			_threads.at(threadIndex)->join();
+	}
+	//PostProcess();
 
 	SaveBMP(_currentBMPName, cWindowWidth, cWindowHeight, _dpi, _pixels);
 }
