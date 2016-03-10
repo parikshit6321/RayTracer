@@ -61,8 +61,7 @@ void Renderer::SwapBuffers(void)
 		strcpy_s(_currentBMPName, 19, cBuffer1);
 }
 
-// Applies Kernel blur effect to smooth out the frame.
-void Renderer::PostProcess(void)
+void Renderer::PostProcessPixels(int threadIndex)
 {
 	int thisone = 0;
 
@@ -71,35 +70,52 @@ void Renderer::PostProcess(void)
 	int xOffsets[9] = { -offset, 0, offset, -offset, 0, offset, -offset, 0., offset };
 	int yOffsets[9] = { offset, offset, offset, 0, 0, 0, -offset, -offset, -offset };
 
-	float kernel[9] = { 
+	float kernel[9] = {
 		(1.0f / 16.0f), (2.0f / 16.0f), (1.0f / 16.0f),
 		(2.0f / 16.0f), (4.0f / 16.0f), (2.0f / 16.0f),
-		(1.0f / 16.0f), (2.0f / 16.0f), (1.0f / 16.0f) 
+		(1.0f / 16.0f), (2.0f / 16.0f), (1.0f / 16.0f)
 	};
 
+	for (int x = (int)(0 + (((float)threadIndex / (float)_numOfThreads) * cWindowWidth)); x < (int)(cWindowWidth * ((float)(threadIndex + 1) / (float)_numOfThreads)); ++x)
+	{
+		for (int y = 0; y < cWindowHeight; ++y)
+		{
+			Color finalColor;
+
+			thisone = y * cWindowWidth + x;
+
+			for (int i = 0; i < 9; ++i)
+			{
+				int xNew = x + xOffsets[i];
+				int yNew = y + yOffsets[i];
+
+				if (xNew >= 0 && xNew < cWindowWidth && yNew >= 0 && yNew < cWindowHeight)
+				{
+					finalColor = finalColor.Add(_pixels[yNew * cWindowWidth + xNew].MultiplyScalar(kernel[i]));
+				}
+			}
+
+			_pixels[thisone].SetColor(finalColor.GetRed(), finalColor.GetGreen(), finalColor.GetBlue());
+		}
+	}
+}
+
+// Applies Kernel blur effect to smooth out the frame.
+void Renderer::PostProcess(void)
+{
 	for (int passes = 0; passes < cNumOfPostProcessPasses; ++passes)
 	{
-		for (int x = 0; x < cWindowWidth; ++x)
+		_threads.clear();
+
+		for (int threadIndex = 0; threadIndex < _numOfThreads; ++threadIndex)
 		{
-			for (int y = 0; y < cWindowHeight; ++y)
-			{
-				Color finalColor;
+			_threads.push_back(new std::thread(&Renderer::PostProcessPixels, this, threadIndex));
+		}
 
-				thisone = y * cWindowWidth + x;
-
-				for (int i = 0; i < 9; ++i)
-				{
-					int xNew = x + xOffsets[i];
-					int yNew = y + yOffsets[i];
-
-					if (xNew >= 0 && xNew < cWindowWidth && yNew >= 0 && yNew < cWindowHeight)
-					{
-						finalColor = finalColor.Add(_pixels[yNew * cWindowWidth + xNew].MultiplyScalar(kernel[i]));
-					}
-				}
-
-				_pixels[thisone].SetColor(finalColor.GetRed(), finalColor.GetGreen(), finalColor.GetBlue());
-			}
+		for (int threadIndex = 0; threadIndex < _numOfThreads; ++threadIndex)
+		{
+			if (_threads.at(threadIndex)->joinable())
+				_threads.at(threadIndex)->join();
 		}
 	}
 }
@@ -176,6 +192,8 @@ void Renderer::Render(int frameNo)
 
 	_sceneObjects.at(0)->Translate(Vect(0.0, (0.02 * sin(frameNo / 50)), 0.0));
 
+	_threads.clear();
+
 	for (int threadIndex = 0; threadIndex < _numOfThreads; ++threadIndex)
 	{
 		_threads.push_back(new std::thread(&Renderer::SetPixels, this, threadIndex));
@@ -185,7 +203,8 @@ void Renderer::Render(int frameNo)
 		if (_threads.at(threadIndex)->joinable())
 			_threads.at(threadIndex)->join();
 	}
-	//PostProcess();
+
+	PostProcess();
 
 	SaveBMP(_currentBMPName, cWindowWidth, cWindowHeight, _dpi, _pixels);
 }

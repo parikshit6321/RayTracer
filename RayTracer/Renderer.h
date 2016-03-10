@@ -36,6 +36,7 @@ private:
 	Color GetColorAt(Vect intersectionPosition, Vect intersectionRayDirection, int indexOfWinningObject,
 		double accuracy, double ambientLight);
 	void SetPixels(int threadIndex);
+	void PostProcessPixels(int threadIndex);
 	void PostProcess(void);
 	void SwapBuffers(void);
 	void SaveBMP(const char* filename, int w, int h, int dpi, Color * data);
