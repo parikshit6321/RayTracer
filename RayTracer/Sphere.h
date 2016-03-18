@@ -6,12 +6,14 @@ class Sphere : public SceneObject
 {
 public:
 
-	Sphere() : SceneObject(Material(Color(0.0, 0.0, 0.0), 0.0f, 0.0f, 0.0f)),
+// Functions
+
+	Sphere() : SceneObject(Material(Color(0.0, 0.0, 0.0), 0.0f, 0.0f, 0.0f, 0.0f)),
 		_center(0.0, 0.0, 0.0), _radius(1.0f)
 	{
 	}
 
-	Sphere(Vect center, float radius, Material material) : 
+	Sphere(Vect center, double radius, Material material) : 
 		SceneObject(material), _center(center), _radius(radius)
 	{
 		_radius = radius;
@@ -19,10 +21,10 @@ public:
 	}
 
 	Vect GetCenter()							{ return _center; }
-	float GetRadius()							{ return _radius; }
+	double GetRadius()							{ return _radius; }
 
 	void SetCenter(Vect center)					{ _center = center; }
-	void SetRadius(float radius)				{ _radius = radius; }
+	void SetRadius(double radius)				{ _radius = radius; }
 
 	virtual Vect GetNormalAt(Vect point)
 	{
@@ -33,20 +35,20 @@ public:
 
 	virtual double FindIntersection(Ray ray)
 	{
-		Vect rayOrigin = ray.GetOrigin();
-		double rayOriginX = rayOrigin.GetX();
-		double rayOriginY = rayOrigin.GetY();
-		double rayOriginZ = rayOrigin.GetZ();
+		Vect rayOrigin = ray._origin;
+		double rayOriginX = rayOrigin._x;
+		double rayOriginY = rayOrigin._y;
+		double rayOriginZ = rayOrigin._z;
 
-		Vect rayDirection = ray.GetDirection();
-		double rayDirectionX = rayDirection.GetX();
-		double rayDirectionY = rayDirection.GetY();
-		double rayDirectionZ = rayDirection.GetZ();
+		Vect rayDirection = ray._direction;
+		double rayDirectionX = rayDirection._x;
+		double rayDirectionY = rayDirection._y;
+		double rayDirectionZ = rayDirection._z;
 
 		Vect sphereCenter = _center;
-		double sphereCenterX = sphereCenter.GetX();
-		double sphereCenterY = sphereCenter.GetY();
-		double sphereCenterZ = sphereCenter.GetZ();
+		double sphereCenterX = sphereCenter._x;
+		double sphereCenterY = sphereCenter._y;
+		double sphereCenterZ = sphereCenter._z;
 
 		double a = 1; // Normalized.
 		double b = (2 * (rayOriginX - sphereCenterX) * rayDirectionX) + (2 * (rayOriginY - sphereCenterY) * rayDirectionY) + (2 * (rayOriginZ - sphereCenterZ) * rayDirectionZ);
@@ -89,8 +91,8 @@ public:
 	{
 	}
 
-private:
+// Variables
 
 	Vect		_center;
-	float		_radius;
+	double		_radius;
 };

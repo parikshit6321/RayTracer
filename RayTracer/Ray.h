@@ -5,7 +5,9 @@
 class Ray
 {
 public:
-	
+
+// Functions
+
 	Ray() : _origin(0.0, 0.0, 0.0), _direction(1.0, 0.0, 0.0)
 	{
 	}
@@ -24,6 +26,7 @@ public:
 	{
 	}
 
-private:
+// Variables
+
 	Vect _origin, _direction;
 };

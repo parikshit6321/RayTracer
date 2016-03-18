@@ -8,7 +8,9 @@ class SceneObject
 {
 public:
 
-	SceneObject() : _material(Color(0.0, 0.0, 0.0), 0.0f, 0.0f, 0.0f)
+// Functions
+
+	SceneObject() : _material(Color(0.0, 0.0, 0.0), 0.0f, 0.0f, 0.0f, 0.0f)
 	{
 	}
 
@@ -27,7 +29,7 @@ public:
 	{
 	}
 
-protected:
+// Variables
 
 	Material	_material;
 };

@@ -6,13 +6,10 @@ Renderer::Renderer() : _X(1.0, 0.0, 0.0), _Y(0.0, 1.0, 0.0), _Z(0.0, 0.0, 1.0), 
 	_dpi = 72;
 	_aspectRatio = (double)cWindowWidth / (double)cWindowHeight;
 
-	_currentBMPName = new char[20];
-	strcpy_s(_currentBMPName, 19, cBuffer1);
-
 	_numOfPixels = cWindowHeight * cWindowWidth;
 	_pixels = new Color[_numOfPixels];
 
-	Vect campos(3, 1.5, 4);
+	Vect campos(0, 0, -5);
 	Vect look_at(0, 0, 0);
 
 	Vect diff_btw(look_at.GetX() - campos.GetX(), look_at.GetY() - campos.GetY(),
@@ -27,38 +24,58 @@ Renderer::Renderer() : _X(1.0, 0.0, 0.0), _Y(0.0, 1.0, 0.0), _Z(0.0, 0.0, 1.0), 
 	_camera.SetCamRight(camright);
 	_camera.SetCamDown(camdown);
 
-	//_numOfThreads = std::thread::hardware_concurrency();
-	_numOfThreads = 4;
+	_numOfThreads = std::thread::hardware_concurrency();
 }
 
 void Renderer::Initialize(void)
 {
 	Material prettyGreenMaterial;
-	prettyGreenMaterial.SetColor(Color(0.5, 1.0, 0.5));
-	prettyGreenMaterial.SetSpecularIntensity(0.3f);
+	prettyGreenMaterial._diffuseColor = Color(0.5, 1.0, 0.5);
+	prettyGreenMaterial._specularIntensity = 0.3f;
 
 	Material maroonMaterial;
-	maroonMaterial.SetColor(Color(0.5, 0.25, 0.25));
+	maroonMaterial._diffuseColor = Color(0.5, 0.25, 0.25);
 
 	Material reflectiveMaterial;
-	reflectiveMaterial.SetColor(Color(0.8, 0.8, 0.8));
-	reflectiveMaterial.SetReflectivity(1.0f);
-	reflectiveMaterial.SetSpecularIntensity(0.1f);
+	reflectiveMaterial._diffuseColor = Color(0.8, 0.8, 0.8);
+	reflectiveMaterial._reflectivity = 1.0f;
+	reflectiveMaterial._specularIntensity = 0.1f;
+
+	Material refractiveMaterial;
+	refractiveMaterial._diffuseColor = Color(0.0, 0.0, 0.0);
+	refractiveMaterial._refractivity = 1.0f;
+	refractiveMaterial._refractiveIndex = 1.5f;
+	refractiveMaterial._criticalAngle = 40.8f;
 
 	_lights.push_back(new Light(Vect(-7, 10, 10), Color(1.0, 1.0, 1.0)));
 	_sceneObjects.push_back(new Sphere(_O.Add(Vect(0.0, 0.02, 0.0)), 1.0f, prettyGreenMaterial));
-	_sceneObjects.push_back(new Sphere(_O.Add(Vect(2.0, 0.0, -3.0)), 1.0f, reflectiveMaterial));
+	_sceneObjects.push_back(new Sphere(_O.Add(Vect(-2.0, 0.0, 2.0)), 1.0f, reflectiveMaterial));
+	_sceneObjects.push_back(new Sphere(_O.Add(Vect(0.0, 0.0, -2.0)), 1.0f, refractiveMaterial));
 	_sceneObjects.push_back(new Plane(_Y, -1.0, maroonMaterial));
 
 	Logger::Log("Renderer initialized.");
 }
 
-void Renderer::SwapBuffers(void)
+void Renderer::MoveCamera(MoveDirection direction)
 {
-	if (strcmp(_currentBMPName, cBuffer1) == 0)
-		strcpy_s(_currentBMPName, 19, cBuffer2);
-	else
-		strcpy_s(_currentBMPName, 19, cBuffer1);
+	switch (direction)
+	{
+	case MoveDirection::MOVE_FORWARD:
+		_camera._camPos = _camera._camPos.Add(Vect(0.0, 0.0, 0.1));
+		break;
+	
+	case MoveDirection::MOVE_BACKWARD:
+		_camera._camPos = _camera._camPos.Add(Vect(0.0, 0.0, -0.1));
+		break;
+
+	case MoveDirection::MOVE_LEFT:
+		_camera._camPos = _camera._camPos.Add(Vect(-0.1, 0.0, 0.0));
+		break;
+		
+	case MoveDirection::MOVE_RIGHT:
+		_camera._camPos = _camera._camPos.Add(Vect(0.1, 0.0, 0.0));
+		break;
+	}
 }
 
 void Renderer::PostProcessPixels(int threadIndex)
@@ -70,13 +87,13 @@ void Renderer::PostProcessPixels(int threadIndex)
 	int xOffsets[9] = { -offset, 0, offset, -offset, 0, offset, -offset, 0., offset };
 	int yOffsets[9] = { offset, offset, offset, 0, 0, 0, -offset, -offset, -offset };
 
-	float kernel[9] = {
+	double kernel[9] = {
 		(1.0f / 16.0f), (2.0f / 16.0f), (1.0f / 16.0f),
 		(2.0f / 16.0f), (4.0f / 16.0f), (2.0f / 16.0f),
 		(1.0f / 16.0f), (2.0f / 16.0f), (1.0f / 16.0f)
 	};
 
-	for (int x = (int)(0 + (((float)threadIndex / (float)_numOfThreads) * cWindowWidth)); x < (int)(cWindowWidth * ((float)(threadIndex + 1) / (float)_numOfThreads)); ++x)
+	for (int x = (int)(0 + (((double)threadIndex / (double)_numOfThreads) * cWindowWidth)); x < (int)(cWindowWidth * ((double)(threadIndex + 1) / (double)_numOfThreads)); ++x)
 	{
 		for (int y = 0; y < cWindowHeight; ++y)
 		{
@@ -95,7 +112,7 @@ void Renderer::PostProcessPixels(int threadIndex)
 				}
 			}
 
-			_pixels[thisone].SetColor(finalColor.GetRed(), finalColor.GetGreen(), finalColor.GetBlue());
+			_pixels[thisone].SetColor(finalColor._r, finalColor._g, finalColor._b);
 		}
 	}
 }
@@ -122,14 +139,14 @@ void Renderer::PostProcess(void)
 
 void Renderer::SetPixels(int threadIndex)
 {
-	for (int x = (int)(0 + (((float)threadIndex / (float)_numOfThreads) * cWindowWidth)); x < (int)(cWindowWidth * ((float)(threadIndex + 1) / (float)_numOfThreads)); ++x)
+	for (int x = (int)(0 + (((double)threadIndex / (double)_numOfThreads) * cWindowWidth)); x < (int)(cWindowWidth * ((double)(threadIndex + 1) / (double)_numOfThreads)); ++x)
 	{
 		for (int y = 0; y < cWindowHeight; ++y)
 		{
 			double xamnt, yamnt;
-			Vect camRayOrigin = _camera.GetCamPos();
+			Vect camRayOrigin = _camera._camPos;
 
-			std::vector<double> intersections;
+			double intersections[MAX_OBJECTS];
 
 			int thisone = y * cWindowWidth + x;
 
@@ -153,29 +170,30 @@ void Renderer::SetPixels(int threadIndex)
 				yamnt = ((cWindowHeight - y) + 0.5) / cWindowHeight;
 			}
 
-			Vect camRayDirection = _camera.GetCamDir().Add(_camera.GetCamRight().ScalarMult(xamnt - 0.5).Add(_camera.GetCamDown().ScalarMult(yamnt - 0.5))).Normalize();
+			Vect camRayDirection = _camera._camDir.Add(_camera._camRight.ScalarMult(xamnt - 0.5).Add(_camera._camDown.ScalarMult(yamnt - 0.5))).Normalize();
 
 			Ray camRay(camRayOrigin, camRayDirection);
 
 			for (int objectIndex = 0; objectIndex < _sceneObjects.size(); ++objectIndex)
 			{
-				intersections.push_back(_sceneObjects.at(objectIndex)->FindIntersection(camRay));
+				intersections[objectIndex] = _sceneObjects.at(objectIndex)->FindIntersection(camRay);
 			}
 
 			int indexOfWinningObject = WinningObjectIndex(intersections);
 
 			if (indexOfWinningObject >= 0)
 			{
-				if (intersections.at(indexOfWinningObject) > cAccuracy)
+				if (intersections[indexOfWinningObject] > cAccuracy)
 				{
 					// Determine the position and direction vectors at the point of intersection.
 
-					Vect intersectionPosition = camRayOrigin.Add(camRayDirection.ScalarMult(intersections.at(indexOfWinningObject)));
+					Vect intersectionPosition = camRayOrigin.Add(camRayDirection.ScalarMult(intersections[indexOfWinningObject]));
 					Vect intersectionRayDirection = camRayDirection;
 
-					Color intersectionColor = GetColorAt(intersectionPosition, intersectionRayDirection, indexOfWinningObject, cAccuracy, cAmbientLight);
+					Color intersectionColor = GetColorAt(intersectionPosition, intersectionRayDirection, 
+						indexOfWinningObject, cAccuracy, cAmbientLight, 1);
 
-					_pixels[thisone].SetColor(intersectionColor.GetRed(), intersectionColor.GetGreen(), intersectionColor.GetBlue());
+					_pixels[thisone].SetColor(intersectionColor._r, intersectionColor._g, intersectionColor._b);
 				}
 			}
 			else
@@ -204,20 +222,55 @@ void Renderer::Render(int frameNo)
 			_threads.at(threadIndex)->join();
 	}
 
-	PostProcess();
-
-	SaveBMP(_currentBMPName, cWindowWidth, cWindowHeight, _dpi, _pixels);
+	SaveBMP(cBuffer, cWindowWidth, cWindowHeight, _dpi, _pixels);
 }
 
 Color Renderer::GetColorAt(Vect intersectionPosition, Vect intersectionRayDirection, int indexOfWinningObject,
-	double accuracy, double ambientLight)
+	double accuracy, double ambientLight, int bounce)
 {
-	Color winningObjectColor = _sceneObjects.at(indexOfWinningObject)->GetMaterial().GetColor();
+	if (bounce > cTotalBounces)
+		return Color(0.0, 0.0, 0.0);
+
+	Color winningObjectColor = _sceneObjects.at(indexOfWinningObject)->_material._diffuseColor;
 	Vect winningObjectNormal = _sceneObjects.at(indexOfWinningObject)->GetNormalAt(intersectionPosition);
 
 	Color finalColor = winningObjectColor.MultiplyScalar(cAmbientLight);
 
-	float reflectivity = _sceneObjects.at(indexOfWinningObject)->GetMaterial().GetReflectivity();
+	// Handle refractions
+	float refractivity = _sceneObjects.at(indexOfWinningObject)->_material._refractivity;
+	if (refractivity > 0.0f && refractivity <= 1.0f)
+	{
+		Ray refractionRay = ComputeRefractionRay(indexOfWinningObject, intersectionPosition,
+			intersectionRayDirection);
+
+		// Determine what the ray intersects with first.
+		double refractionIntersections[MAX_OBJECTS];
+
+		for (int refractionIndex = 0; refractionIndex < _sceneObjects.size(); ++refractionIndex)
+		{
+			refractionIntersections[refractionIndex] = _sceneObjects.at(refractionIndex)->FindIntersection(refractionRay);
+		}
+
+		int indexOfWinningObjectWithRefraction = WinningObjectIndex(refractionIntersections);
+
+		if (indexOfWinningObjectWithRefraction >= 0)
+		{
+			// Ray missed everything.
+			if (refractionIntersections[indexOfWinningObjectWithRefraction] > cAccuracy)
+			{
+				// Determine the position and direction of the point of intersection with the refraction ray.
+				
+				Vect refractionIntersectionPosition = intersectionPosition.Add(refractionRay._direction.ScalarMult(refractionIntersections[indexOfWinningObjectWithRefraction]));
+				Vect refractionIntersectionDirection = refractionRay._direction;
+
+				Color refractionIntersectionColor = GetColorAt(refractionIntersectionPosition, refractionIntersectionDirection, indexOfWinningObjectWithRefraction, cAccuracy, cAmbientLight, (bounce + 1));
+
+				finalColor = finalColor.Add(refractionIntersectionColor.MultiplyScalar(refractivity));
+			}
+		}
+	}
+
+	double reflectivity = _sceneObjects.at(indexOfWinningObject)->_material._reflectivity;
 	if (reflectivity > 0.0f && reflectivity <= 1.0f)
 	{
 		double dot1 = winningObjectNormal.Dot(intersectionRayDirection.Negative());
@@ -231,11 +284,11 @@ Color Renderer::GetColorAt(Vect intersectionPosition, Vect intersectionRayDirect
 		Ray reflectionRay(intersectionPosition, reflectionDirection);
 
 		// Determine what the ray intersects with first.
-		std::vector<double> reflectionIntersections;
+		double reflectionIntersections[MAX_OBJECTS];
 
 		for (int reflectionIndex = 0; reflectionIndex < _sceneObjects.size(); ++reflectionIndex)
 		{
-			reflectionIntersections.push_back(_sceneObjects.at(reflectionIndex)->FindIntersection(reflectionRay));
+			reflectionIntersections[reflectionIndex] = _sceneObjects.at(reflectionIndex)->FindIntersection(reflectionRay);
 		}
 
 		int indexOfWinningObjectWithReflection = WinningObjectIndex(reflectionIntersections);
@@ -243,15 +296,15 @@ Color Renderer::GetColorAt(Vect intersectionPosition, Vect intersectionRayDirect
 		if (indexOfWinningObjectWithReflection >= 0)
 		{
 			// Ray missed everything.
-			if (reflectionIntersections.at(indexOfWinningObjectWithReflection) > cAccuracy)
+			if (reflectionIntersections[indexOfWinningObjectWithReflection] > cAccuracy)
 			{
 				// Determine the position and direction of the point of intersection with the reflection ray.
 				// The ray only affects the color if it reflected off something.
 
-				Vect reflectionIntersectionPosition = intersectionPosition.Add(reflectionDirection.ScalarMult(reflectionIntersections.at(indexOfWinningObjectWithReflection)));
+				Vect reflectionIntersectionPosition = intersectionPosition.Add(reflectionDirection.ScalarMult(reflectionIntersections[indexOfWinningObjectWithReflection]));
 				Vect reflectionIntersectionDirection = reflectionDirection;
 
-				Color reflectionIntersectionColor = GetColorAt(reflectionIntersectionPosition, reflectionIntersectionDirection, indexOfWinningObjectWithReflection, cAccuracy, cAmbientLight);
+				Color reflectionIntersectionColor = GetColorAt(reflectionIntersectionPosition, reflectionIntersectionDirection, indexOfWinningObjectWithReflection, cAccuracy, cAmbientLight, (bounce + 1));
 			
 				finalColor = finalColor.Add(reflectionIntersectionColor.MultiplyScalar(reflectivity));
 			}
@@ -260,31 +313,31 @@ Color Renderer::GetColorAt(Vect intersectionPosition, Vect intersectionRayDirect
 
 	for (int lightIndex = 0; lightIndex < _lights.size(); ++lightIndex)
 	{
-		Vect lightDirection = _lights.at(lightIndex)->GetPosition().Add(intersectionPosition.Negative()).Normalize();
-		float cosineAngle = winningObjectNormal.Dot(lightDirection);
+		Vect lightDirection = _lights.at(lightIndex)->_position.Add(intersectionPosition.Negative()).Normalize();
+		double cosineAngle = winningObjectNormal.Dot(lightDirection);
 		
 		if (cosineAngle > 0)
 		{
 			// Test for shadow.
 			bool bShadowed = false;
 
-			Vect distanceToLight = _lights.at(lightIndex)->GetPosition().Add(intersectionPosition.Negative());
-			double distanceToLightMagnitude = distanceToLight.GetMagnitude();
+			Vect distanceToLight = _lights.at(lightIndex)->_position.Add(intersectionPosition.Negative());
+			double distanceToLightMagnitude = distanceToLight._magnitude;
 
 			Ray shadowRay(intersectionPosition, lightDirection);
 
-			std::vector<double> secondaryIntersections;
+			double secondaryIntersections[MAX_OBJECTS];
 
 			for (int objectIndex = 0; objectIndex < _sceneObjects.size() && !bShadowed; ++objectIndex)
 			{
-				secondaryIntersections.push_back(_sceneObjects.at(objectIndex)->FindIntersection(shadowRay));
+				secondaryIntersections[objectIndex] = _sceneObjects.at(objectIndex)->FindIntersection(shadowRay);
 			}
 
-			for (int c = 0; c < secondaryIntersections.size(); ++c)
+			for (int c = 0; c < _sceneObjects.size(); ++c)
 			{
-				if (secondaryIntersections.at(c) > cAccuracy)
+				if (secondaryIntersections[c] > cAccuracy)
 				{
-					if (secondaryIntersections.at(c) <= distanceToLightMagnitude)
+					if (secondaryIntersections[c] <= distanceToLightMagnitude && _sceneObjects.at(c)->_material._refractivity <= 0.0f)
 					{
 						bShadowed = true;
 					}
@@ -293,10 +346,10 @@ Color Renderer::GetColorAt(Vect intersectionPosition, Vect intersectionRayDirect
 
 			if (!bShadowed)
 			{
-				finalColor = finalColor.Add(winningObjectColor.MultiplyColor(_lights.at(lightIndex)->GetColor()).MultiplyScalar(cosineAngle));
+				finalColor = finalColor.Add(winningObjectColor.MultiplyColor(_lights.at(lightIndex)->_color).MultiplyScalar(cosineAngle));
 
 				// Add shininess
-				float specularIntensity = _sceneObjects.at(indexOfWinningObject)->GetMaterial().GetSpecularIntensity();
+				double specularIntensity = _sceneObjects.at(indexOfWinningObject)->_material._specularIntensity;
 				if (specularIntensity > 0 && specularIntensity <= 1)
 				{
 					double dot1 = winningObjectNormal.Dot(intersectionRayDirection.Negative());
@@ -311,7 +364,7 @@ Color Renderer::GetColorAt(Vect intersectionPosition, Vect intersectionRayDirect
 					if (specular > 0)
 					{
 						specular = pow(specular, 10);
-						finalColor = finalColor.Add(_lights.at(lightIndex)->GetColor().MultiplyScalar(specular * specularIntensity));
+						finalColor = finalColor.Add(_lights.at(lightIndex)->_color.MultiplyScalar(specular * specularIntensity));
 					}
 				}
 			}
@@ -321,20 +374,70 @@ Color Renderer::GetColorAt(Vect intersectionPosition, Vect intersectionRayDirect
 	return finalColor.Clip();
 }
 
-int Renderer::WinningObjectIndex(std::vector<double> intersections)
+Ray Renderer::ComputeRefractionRay(int indexOfWinningObject, Vect intersectionPosition, 
+	Vect intersectionRayDirection)
+{
+	Vect normal = _sceneObjects.at(indexOfWinningObject)->GetNormalAt(intersectionPosition);
+	normal = normal.Normalize();
+	intersectionRayDirection = intersectionRayDirection.Normalize();
+
+	Vect refractedRayOrigin;
+	Vect refractedRayDirection;
+
+	float ratio = 1.0f;
+	float refractiveIndex = _sceneObjects.at(indexOfWinningObject)->_material._refractiveIndex;
+	float criticalAngle = _sceneObjects.at(indexOfWinningObject)->_material._criticalAngle;
+
+	// Ray is inside the sphere.
+	if (intersectionRayDirection.Dot(normal) >= 0.0f)
+	{
+		normal = normal.Negative();
+		ratio = refractiveIndex;
+	}
+	// Ray is outside the sphere.
+	else
+	{
+		ratio = 1.0f / refractiveIndex;
+	}
+
+	// Calculate cos(theta 1).
+	double costheta1 = normal.Negative().Dot(intersectionRayDirection);
+
+	double angleInDegrees = acos(costheta1) * (180.0f / cPI);
+
+	if ((angleInDegrees > criticalAngle) && (ratio > 1.0f))
+	{
+		// Total internal reflection takes place.
+		refractedRayDirection = intersectionRayDirection;
+		Vect temp = normal.ScalarMult(2.0 * costheta1);
+		refractedRayDirection.Add(temp);
+	}
+	else
+	{
+		// Normal refraction takes place.
+		refractedRayDirection = (intersectionRayDirection.ScalarMult(ratio)).Add(normal.ScalarMult((ratio * costheta1) - sqrt(1.0f - (ratio * ratio * (1.0f - (costheta1 * costheta1))))));
+	}
+
+	refractedRayDirection = refractedRayDirection.Normalize();
+	refractedRayOrigin = intersectionPosition.Add(normal.Negative().ScalarMult(cAccuracy));;
+
+	return Ray(refractedRayOrigin, refractedRayDirection);
+}
+
+int Renderer::WinningObjectIndex(double intersections[])
 {
 	// Return the index of the winning intersection.
 	int indexOfMinimumValue;
 
 	// Prevent unnecessary calculations.
-	if (intersections.size() == 0)
+	if (_sceneObjects.size() == 0)
 	{
 		// If there are no intersections.
 		return -1;
 	}
-	else if (intersections.size() == 1)
+	else if (_sceneObjects.size() == 1)
 	{
-		if (intersections.at(0) > 0)
+		if (intersections[0] > 0)
 		{
 			// If that intersection is greater than zero then its our index of minimum value.
 			return 0;
@@ -351,22 +454,22 @@ int Renderer::WinningObjectIndex(std::vector<double> intersections)
 		// First find the maximum value;
 
 		double max = 0;
-		for (int i = 0; i < intersections.size(); ++i)
+		for (int i = 0; i < _sceneObjects.size(); ++i)
 		{
-			if (intersections.at(i) > max)
+			if (intersections[i] > max)
 			{
-				max = intersections.at(i);
+				max = intersections[i];
 			}
 		}
 
 		if (max > 0)
 		{
 			double min = max;
-			for (int i = 0; i < intersections.size(); ++i)
+			for (int i = 0; i < _sceneObjects.size(); ++i)
 			{
-				if (intersections.at(i) > 0 && intersections.at(i) <= min)
+				if (intersections[i] > 0 && intersections[i] <= min)
 				{
-					min = intersections.at(i);
+					min = intersections[i];
 					indexOfMinimumValue = i;
 				}
 			}
@@ -379,14 +482,6 @@ int Renderer::WinningObjectIndex(std::vector<double> intersections)
 			return -1;
 		}
 	}
-}
-
-const char* Renderer::GetRenderedFrame(void)
-{
-	if (strcmp(_currentBMPName, cBuffer1) == 0)
-		return cBuffer2;
-	else
-		return cBuffer1;
 }
 
 void Renderer::SaveBMP(const char* filename, int w, int h, int dpi, Color * data)
@@ -441,9 +536,9 @@ void Renderer::SaveBMP(const char* filename, int w, int h, int dpi, Color * data
 
 	for (int i = 0; i < k; ++i)
 	{
-		double red = (data[i].GetRed()) * 255;
-		double green = (data[i].GetGreen()) * 255;
-		double blue = (data[i].GetBlue()) * 255;
+		double red = (data[i]._r) * 255;
+		double green = (data[i]._g) * 255;
+		double blue = (data[i]._b) * 255;
 
 		unsigned char color[3] = { (int)floor(blue), (int)floor(green), (int)floor(red) };
 

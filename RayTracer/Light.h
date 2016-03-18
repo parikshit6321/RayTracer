@@ -7,6 +7,8 @@ class Light
 {
 public:
 
+// Functions
+
 	Light() : _position(0, 10, 0), _color(1, 1, 1)
 	{
 	}
@@ -25,7 +27,7 @@ public:
 	{
 	}
 
-private:
+// Variables
 
 	Vect	_position;
 	Color	_color;

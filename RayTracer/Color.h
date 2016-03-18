@@ -3,6 +3,9 @@
 class Color
 {
 public:
+
+// Functions
+
 	Color() { _r = 0.0; _g = 0.0; _b = 0.0; }
 	Color(double r, double g, double b) : _r(r), _g(g), _b(b) { }
 	
@@ -78,6 +81,7 @@ public:
 	~Color()
 	{}
 
-private:
+// Variables
+
 	double _r, _g, _b;
 };

@@ -16,7 +16,7 @@ TCHAR szTitle[MAX_LOADSTRING];					// The title bar text
 TCHAR szWindowClass[MAX_LOADSTRING];			// the main window class name
 Renderer renderer;
 
-float totalDeltaTime = 0.0f;
+double totalDeltaTime = 0.0f;
 int frameNo = 0;
 
 // Forward declarations of functions included in this code module:
@@ -24,6 +24,7 @@ ATOM				MyRegisterClass(HINSTANCE hInstance);
 BOOL				InitInstance(HINSTANCE, int);
 LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
 bool				LoadAndBlitBitmap(LPCWSTR szFileName, HDC hWinDC);
+void				UpdateCamera(MoveDirection);
 
 int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -54,9 +55,9 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 
 	hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_RAYTRACER));
 
-	float prevTime = Timer::GetTime();
-	float currTime = prevTime;
-	float deltaTime = 0.0f;
+	double prevTime = Timer::GetTime();
+	double currTime = prevTime;
+	double deltaTime = 0.0f;
 
 	PeekMessage(&msg, NULL, 0, 0, PM_REMOVE);
 
@@ -75,7 +76,7 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 
 		renderer.Render(frameNo);
 
-		LoadAndBlitBitmap(__T("Buffer1.bmp"), drawingWindowHDC);
+		LoadAndBlitBitmap(__T("Buffer.bmp"), drawingWindowHDC);
 
 		currTime = Timer::GetTime();
 		deltaTime = currTime - prevTime;
@@ -83,7 +84,7 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 		totalDeltaTime += deltaTime;
 	}
 
-	float averageDeltaTime = totalDeltaTime / frameNo;
+	double averageDeltaTime = totalDeltaTime / frameNo;
 	std::string fpsString = "Average FPS : " + std::to_string(1.0f / averageDeltaTime);
 	Logger::Log(fpsString.c_str());
 
@@ -179,6 +180,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case VK_ESCAPE:
 				PostQuitMessage(0);
 				break;
+
+			case VK_UP:
+				UpdateCamera(MOVE_FORWARD);
+				break;
+			
+			case VK_DOWN:
+				UpdateCamera(MOVE_BACKWARD);
+				break;
+
+			case VK_LEFT:
+				UpdateCamera(MOVE_LEFT);
+				break;
+
+			case VK_RIGHT:
+				UpdateCamera(MOVE_RIGHT);
+				break;
 			}
 		}
 		break;
@@ -205,6 +222,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}
 	return 0;
+}
+
+void UpdateCamera(MoveDirection direction)
+{
+	renderer.MoveCamera(direction);
 }
 
 bool LoadAndBlitBitmap(LPCWSTR szFileName, HDC hWinDC)

@@ -6,7 +6,9 @@ class Plane : public SceneObject
 {
 public:
 
-	Plane() : SceneObject(Material(Color(0.0, 0.0, 0.0), 0.0f, 0.0f, 0.0f)), _normal(Vect(0.0, 1.0, 0.0)),
+// Functions
+
+	Plane() : SceneObject(Material(Color(0.0, 0.0, 0.0), 0.0f, 0.0f, 0.0f, 0.0f)), _normal(Vect(0.0, 1.0, 0.0)),
 		_distance(0.0)
 	{
 	}
@@ -25,7 +27,7 @@ public:
 	virtual Vect GetNormalAt(Vect point)		{ return _normal; }
 	virtual double FindIntersection(Ray ray)
 	{
-		Vect rayDirection = ray.GetDirection();
+		Vect rayDirection = ray._direction;
 		double a = rayDirection.Dot(_normal);
 
 		if (a == 0)
@@ -35,7 +37,7 @@ public:
 		}
 		else
 		{
-			double b = _normal.Dot(ray.GetOrigin().Add(_normal.ScalarMult(_distance).Negative()));
+			double b = _normal.Dot(ray._origin.Add(_normal.ScalarMult(_distance).Negative()));
 			return -1 * (b / a);
 		}
 	}
@@ -47,7 +49,7 @@ public:
 	{
 	}
 
-private:
+// Variables
 
 	Vect		_normal;
 	double		_distance;

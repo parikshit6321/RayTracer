@@ -6,6 +6,8 @@ class Vect
 {
 public:
 
+// Functions
+
 	Vect() : _x(0.0), _y(0.0), _z(0.0), _magnitude(0.0)
 	{
 	}
@@ -45,17 +47,17 @@ public:
 
 	double Dot(Vect other)
 	{
-		return ((_x * other.GetX()) + (_y * other.GetY()) + (_z * other.GetZ()));
+		return ((_x * other._x) + (_y * other._y) + (_z * other._z));
 	}
 
 	Vect Cross(Vect other)
 	{
-		return Vect(_y * other.GetZ() - _z * other.GetY(), _z * other.GetX() - _x * other.GetZ(), _x * other.GetY() - _y * other.GetX());
+		return Vect(_y * other._z - _z * other._y, _z * other._x - _x * other._z, _x * other._y - _y * other._x);
 	}
 
 	Vect Add(Vect other)
 	{
-		return Vect(_x + other.GetX(), _y + other.GetY(), _z + other.GetZ());
+		return Vect(_x + other._x, _y + other._y, _z + other._z);
 	}
 
 	Vect ScalarMult(double scalar)
@@ -67,7 +69,7 @@ public:
 	{
 	}
 
-private:
+// Variables
 	
 	void SetMagnitude()
 	{

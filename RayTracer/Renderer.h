@@ -22,25 +22,33 @@
 #include <Windows.h>
 #include <thread>
 
+enum MoveDirection
+{
+	MOVE_FORWARD,
+	MOVE_BACKWARD,
+	MOVE_LEFT,
+	MOVE_RIGHT
+};
+
 class Renderer
 {
 public:
 	Renderer();
 	void Initialize(void);
 	void Render(int frameNo);
-	const char* GetRenderedFrame(void);
+	void MoveCamera(MoveDirection direction);
 	~Renderer();
 
 private:
 
 	Color GetColorAt(Vect intersectionPosition, Vect intersectionRayDirection, int indexOfWinningObject,
-		double accuracy, double ambientLight);
+		double accuracy, double ambientLight, int bounce);
+	Ray ComputeRefractionRay(int indexOfWinningObject, Vect intersectionPosition, Vect intersectionRayDirection);
 	void SetPixels(int threadIndex);
 	void PostProcessPixels(int threadIndex);
 	void PostProcess(void);
-	void SwapBuffers(void);
 	void SaveBMP(const char* filename, int w, int h, int dpi, Color * data);
-	int WinningObjectIndex(std::vector<double> intersections);
+	int WinningObjectIndex(double intersections[]);
 
 	int							_numOfPixels;
 	Color *						_pixels;
@@ -48,8 +56,6 @@ private:
 	Camera						_camera;
 	std::vector<Light *>		_lights;
 	std::vector<SceneObject *>	_sceneObjects;
-
-	char *						_currentBMPName;
 
 	Vect						_X;
 	Vect						_Y;

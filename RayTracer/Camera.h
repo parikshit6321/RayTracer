@@ -6,6 +6,8 @@ class Camera
 {
 public:
 
+// Functions
+
 	Camera() : _camPos(0, 0, 0), _camDir(0, 0, 1), _camRight(1, 0, 0), _camDown(0, -1, 0)
 	{
 	}
@@ -29,6 +31,7 @@ public:
 	{
 	}
 
-private:
+// Variables
+
 	Vect _camPos, _camDir, _camRight, _camDown;
 };
