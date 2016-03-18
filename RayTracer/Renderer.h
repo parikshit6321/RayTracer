@@ -8,6 +8,7 @@
 #include "Light.h"
 #include "Sphere.h"
 #include "Plane.h"
+#include "Settings.h"
 
 #include <fstream>
 #include <sstream>

@@ -9,21 +9,6 @@ public:
 	Color() { _r = 0.0; _g = 0.0; _b = 0.0; }
 	Color(double r, double g, double b) : _r(r), _g(g), _b(b) { }
 	
-	double GetRed()			{ return _r; }
-	double GetGreen()		{ return _g; }
-	double GetBlue()		{ return _b; }
-
-	void SetColor(double r, double g, double b)
-	{
-		_r = r;
-		_g = g;
-		_b = b;
-	}
-
-	void SetRed(double r)	{ _r = r; }
-	void SetGreen(double g)	{ _g = g; }
-	void SetBlue(double b)	{ _b = b; }
-
 	double brightness()
 	{
 		double intensity = (_r + _g + _b) / 3;
@@ -37,17 +22,17 @@ public:
 
 	Color Add(Color color)
 	{
-		return Color(_r + color.GetRed(), _g + color.GetGreen(), _b + color.GetBlue());
+		return Color(_r + color._r, _g + color._g, _b + color._b);
 	}
 
 	Color MultiplyColor(Color color)
 	{
-		return Color(_r * color.GetRed(), _g * color.GetGreen(), _b * color.GetBlue());
+		return Color(_r * color._r, _g * color._g, _b * color._b);
 	}
 
 	Color Average(Color color)
 	{
-		return Color((_r + color.GetRed()) / 2, (_g + color.GetGreen()) / 2, (_b + color.GetBlue()) / 2);
+		return Color((_r + color._r) / 2, (_g + color._g) / 2, (_b + color._b) / 2);
 	}
 
 	Color Clip()

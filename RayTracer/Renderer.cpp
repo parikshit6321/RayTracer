@@ -3,17 +3,21 @@
 
 Renderer::Renderer() : _X(1.0, 0.0, 0.0), _Y(0.0, 1.0, 0.0), _Z(0.0, 0.0, 1.0), _O(0.0, 0.0, 0.0)
 {
-	_dpi = 72;
-	_aspectRatio = (double)cWindowWidth / (double)cWindowHeight;
+}
 
-	_numOfPixels = cWindowHeight * cWindowWidth;
+void Renderer::Initialize(void)
+{
+	_dpi = 72;
+	_aspectRatio = (double)Settings::cWindowWidth / (double)Settings::cWindowHeight;
+
+	_numOfPixels = Settings::cWindowHeight * Settings::cWindowWidth;
 	_pixels = new Color[_numOfPixels];
 
 	Vect campos(0, 0, -5);
 	Vect look_at(0, 0, 0);
 
 	Vect diff_btw(look_at.GetX() - campos.GetX(), look_at.GetY() - campos.GetY(),
-				  look_at.GetZ() - campos.GetZ());
+		look_at.GetZ() - campos.GetZ());
 
 	Vect camdir = diff_btw.Normalize();
 	Vect camright = _Y.Cross(camdir).Normalize();
@@ -25,10 +29,7 @@ Renderer::Renderer() : _X(1.0, 0.0, 0.0), _Y(0.0, 1.0, 0.0), _Z(0.0, 0.0, 1.0), 
 	_camera.SetCamDown(camdown);
 
 	_numOfThreads = std::thread::hardware_concurrency();
-}
 
-void Renderer::Initialize(void)
-{
 	Material prettyGreenMaterial;
 	prettyGreenMaterial._diffuseColor = Color(0.5, 1.0, 0.5);
 	prettyGreenMaterial._specularIntensity = 0.3f;
@@ -93,26 +94,28 @@ void Renderer::PostProcessPixels(int threadIndex)
 		(1.0f / 16.0f), (2.0f / 16.0f), (1.0f / 16.0f)
 	};
 
-	for (int x = (int)(0 + (((double)threadIndex / (double)_numOfThreads) * cWindowWidth)); x < (int)(cWindowWidth * ((double)(threadIndex + 1) / (double)_numOfThreads)); ++x)
+	for (int x = (int)(0 + (((double)threadIndex / (double)_numOfThreads) * Settings::cWindowWidth)); x < (int)(Settings::cWindowWidth * ((double)(threadIndex + 1) / (double)_numOfThreads)); ++x)
 	{
-		for (int y = 0; y < cWindowHeight; ++y)
+		for (int y = 0; y < Settings::cWindowHeight; ++y)
 		{
 			Color finalColor;
 
-			thisone = y * cWindowWidth + x;
+			thisone = y * Settings::cWindowWidth + x;
 
 			for (int i = 0; i < 9; ++i)
 			{
 				int xNew = x + xOffsets[i];
 				int yNew = y + yOffsets[i];
 
-				if (xNew >= 0 && xNew < cWindowWidth && yNew >= 0 && yNew < cWindowHeight)
+				if (xNew >= 0 && xNew < Settings::cWindowWidth && yNew >= 0 && yNew < Settings::cWindowHeight)
 				{
-					finalColor = finalColor.Add(_pixels[yNew * cWindowWidth + xNew].MultiplyScalar(kernel[i]));
+					finalColor = finalColor.Add(_pixels[yNew * Settings::cWindowWidth + xNew].MultiplyScalar(kernel[i]));
 				}
 			}
 
-			_pixels[thisone].SetColor(finalColor._r, finalColor._g, finalColor._b);
+			_pixels[thisone]._r = finalColor._r;
+			_pixels[thisone]._g = finalColor._g;
+			_pixels[thisone]._b = finalColor._b;
 		}
 	}
 }
@@ -120,7 +123,7 @@ void Renderer::PostProcessPixels(int threadIndex)
 // Applies Kernel blur effect to smooth out the frame.
 void Renderer::PostProcess(void)
 {
-	for (int passes = 0; passes < cNumOfPostProcessPasses; ++passes)
+	for (int passes = 0; passes < Settings::cNumOfPostProcessPasses; ++passes)
 	{
 		_threads.clear();
 
@@ -139,35 +142,35 @@ void Renderer::PostProcess(void)
 
 void Renderer::SetPixels(int threadIndex)
 {
-	for (int x = (int)(0 + (((double)threadIndex / (double)_numOfThreads) * cWindowWidth)); x < (int)(cWindowWidth * ((double)(threadIndex + 1) / (double)_numOfThreads)); ++x)
+	for (int x = (int)(0 + (((double)threadIndex / (double)_numOfThreads) * Settings::cWindowWidth)); x < (int)(Settings::cWindowWidth * ((double)(threadIndex + 1) / (double)_numOfThreads)); ++x)
 	{
-		for (int y = 0; y < cWindowHeight; ++y)
+		for (int y = 0; y < Settings::cWindowHeight; ++y)
 		{
 			double xamnt, yamnt;
 			Vect camRayOrigin = _camera._camPos;
 
 			double intersections[MAX_OBJECTS];
 
-			int thisone = y * cWindowWidth + x;
+			int thisone = y * Settings::cWindowWidth + x;
 
 			// Start with no anti-aliasing.
-			if (cWindowWidth > cWindowHeight)
+			if (Settings::cWindowWidth > Settings::cWindowHeight)
 			{
 				// The image is wider than it is tall.
-				xamnt = ((x + 0.5) / cWindowWidth) * _aspectRatio - (((cWindowWidth - cWindowHeight) / (double)cWindowHeight) / 2);
-				yamnt = ((cWindowHeight - y) + 0.5) / cWindowHeight;
+				xamnt = ((x + 0.5) / Settings::cWindowWidth) * _aspectRatio - (((Settings::cWindowWidth - Settings::cWindowHeight) / (double)Settings::cWindowHeight) / 2);
+				yamnt = ((Settings::cWindowHeight - y) + 0.5) / Settings::cWindowHeight;
 			}
-			else if (cWindowHeight > cWindowWidth)
+			else if (Settings::cWindowHeight > Settings::cWindowWidth)
 			{
 				// The image is taller than it is wide.
-				xamnt = (x + 0.5) / cWindowWidth;
-				yamnt = (((cWindowHeight - y) + 0.5) / cWindowHeight) / _aspectRatio - (((cWindowHeight - cWindowWidth) / (double)cWindowWidth) / 2);
+				xamnt = (x + 0.5) / Settings::cWindowWidth;
+				yamnt = (((Settings::cWindowHeight - y) + 0.5) / Settings::cWindowHeight) / _aspectRatio - (((Settings::cWindowHeight - Settings::cWindowWidth) / (double)Settings::cWindowWidth) / 2);
 			}
 			else
 			{
 				// The image is as tall as it is wide.
-				xamnt = (x + 0.5) / cWindowWidth;
-				yamnt = ((cWindowHeight - y) + 0.5) / cWindowHeight;
+				xamnt = (x + 0.5) / Settings::cWindowWidth;
+				yamnt = ((Settings::cWindowHeight - y) + 0.5) / Settings::cWindowHeight;
 			}
 
 			Vect camRayDirection = _camera._camDir.Add(_camera._camRight.ScalarMult(xamnt - 0.5).Add(_camera._camDown.ScalarMult(yamnt - 0.5))).Normalize();
@@ -193,12 +196,16 @@ void Renderer::SetPixels(int threadIndex)
 					Color intersectionColor = GetColorAt(intersectionPosition, intersectionRayDirection, 
 						indexOfWinningObject, cAccuracy, cAmbientLight, 1);
 
-					_pixels[thisone].SetColor(intersectionColor._r, intersectionColor._g, intersectionColor._b);
+					_pixels[thisone]._r = intersectionColor._r;
+					_pixels[thisone]._g = intersectionColor._g;
+					_pixels[thisone]._b = intersectionColor._b;
 				}
 			}
 			else
 			{
-				_pixels[thisone].SetColor(0.0, 0.0, 0.0);
+				_pixels[thisone]._r = 0.0;
+				_pixels[thisone]._g = 0.0;
+				_pixels[thisone]._b = 0.0;
 			}
 		}
 	}
@@ -222,13 +229,18 @@ void Renderer::Render(int frameNo)
 			_threads.at(threadIndex)->join();
 	}
 
-	SaveBMP(cBuffer, cWindowWidth, cWindowHeight, _dpi, _pixels);
+	if (Settings::cPostProcessingEnabled)
+	{
+		PostProcess();
+	}
+
+	SaveBMP(cBuffer, Settings::cWindowWidth, Settings::cWindowHeight, _dpi, _pixels);
 }
 
 Color Renderer::GetColorAt(Vect intersectionPosition, Vect intersectionRayDirection, int indexOfWinningObject,
 	double accuracy, double ambientLight, int bounce)
 {
-	if (bounce > cTotalBounces)
+	if (bounce > Settings::cNumOfBounces)
 		return Color(0.0, 0.0, 0.0);
 
 	Color winningObjectColor = _sceneObjects.at(indexOfWinningObject)->_material._diffuseColor;

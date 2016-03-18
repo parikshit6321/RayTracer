@@ -32,6 +32,7 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
                      _In_ int       nCmdShow)
 {
 	Logger::Initialize();
+	Settings::Initialize();
 	renderer.Initialize();
 	Timer::Initialize();
 
@@ -136,14 +137,12 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    hInst = hInstance; // Store instance handle in our global variable
 
    hWnd = CreateWindow(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-      200, 100, cWindowWidth, cWindowHeight, NULL, NULL, hInstance, NULL);
+      200, 100, Settings::cWindowWidth, Settings::cWindowHeight, NULL, NULL, hInstance, NULL);
 
    if (!hWnd)
    {
       return FALSE;
    }
-
-   Logger::Log("Window created successfully.");
 
    drawingWindowHDC = GetDC(hWnd);
 
