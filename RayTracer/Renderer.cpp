@@ -12,6 +12,12 @@ void Renderer::Initialize(void)
 
 	_numOfPixels = Settings::cWindowHeight * Settings::cWindowWidth;
 	_pixels = new Color[_numOfPixels];
+	_depthBuffer = new double[_numOfPixels];
+
+	for (int i = 0; i < _numOfPixels; ++i)
+	{
+		_depthBuffer[i] = 0.0;
+	}
 
 	Vect campos(0, 0, -5);
 	Vect look_at(0, 0, 0);
@@ -32,15 +38,22 @@ void Renderer::Initialize(void)
 
 	Material prettyGreenMaterial;
 	prettyGreenMaterial._diffuseColor = Color(0.5, 1.0, 0.5);
+	prettyGreenMaterial._reflectivity = 0.5f;
 	prettyGreenMaterial._specularIntensity = 0.3f;
 
 	Material maroonMaterial;
 	maroonMaterial._diffuseColor = Color(0.5, 0.25, 0.25);
+	maroonMaterial._reflectivity = 0.5;
 
 	Material reflectiveMaterial;
 	reflectiveMaterial._diffuseColor = Color(0.8, 0.8, 0.8);
 	reflectiveMaterial._reflectivity = 1.0f;
 	reflectiveMaterial._specularIntensity = 0.1f;
+
+	Material blueMaterial;
+	blueMaterial._diffuseColor = Color(0.0, 0.2, 0.9);
+	blueMaterial._reflectivity = 0.5f;
+	blueMaterial._specularIntensity = 0.5;
 
 	Material refractiveMaterial;
 	refractiveMaterial._diffuseColor = Color(0.0, 0.0, 0.0);
@@ -49,12 +62,17 @@ void Renderer::Initialize(void)
 	refractiveMaterial._criticalAngle = 40.8f;
 
 	_lights.push_back(new Light(Vect(-7, 10, 10), Color(1.0, 1.0, 1.0)));
-	_sceneObjects.push_back(new Sphere(_O.Add(Vect(0.0, 0.02, 0.0)), 1.0f, prettyGreenMaterial));
-	_sceneObjects.push_back(new Sphere(_O.Add(Vect(-2.0, 0.0, 2.0)), 1.0f, reflectiveMaterial));
-	_sceneObjects.push_back(new Sphere(_O.Add(Vect(0.0, 0.0, -2.0)), 1.0f, refractiveMaterial));
+	_sceneObjects.push_back(new Sphere(_O.Add(Vect(2.0, 0.02, 0.0)), 1.0f, prettyGreenMaterial));
+	_sceneObjects.push_back(new Sphere(_O.Add(Vect(-2.0, 0.0, 10.0)), 1.0f, reflectiveMaterial));
+	_sceneObjects.push_back(new Sphere(_O.Add(Vect(0.0, 0.0, -2.0)), 1.0f, blueMaterial));
 	_sceneObjects.push_back(new Plane(_Y, -1.0, maroonMaterial));
 
 	Logger::Log("Renderer initialized.");
+}
+
+double * Renderer::GetDepthBuffer(void)
+{
+	return _depthBuffer;
 }
 
 void Renderer::MoveCamera(MoveDirection direction)
@@ -79,13 +97,21 @@ void Renderer::MoveCamera(MoveDirection direction)
 	}
 }
 
+int Renderer::CalculateOffset(double depth)
+{
+	depth = depth / 2;
+	float offset = 0.55 - ((depth * depth) * (pow(2.71828, -depth)));
+	offset = offset * 5.0f;
+	return (int)(offset);
+}
+
 void Renderer::PostProcessPixels(int threadIndex)
 {
 	int thisone = 0;
 
-	const int offset = 1;
+	int offset = 1;
 
-	int xOffsets[9] = { -offset, 0, offset, -offset, 0, offset, -offset, 0., offset };
+	int xOffsets[9] = { -offset, 0, offset, -offset, 0, offset, -offset, 0, offset };
 	int yOffsets[9] = { offset, offset, offset, 0, 0, 0, -offset, -offset, -offset };
 
 	double kernel[9] = {
@@ -101,6 +127,31 @@ void Renderer::PostProcessPixels(int threadIndex)
 			Color finalColor;
 
 			thisone = y * Settings::cWindowWidth + x;
+
+			// Calculate offset.
+			offset = CalculateOffset(_depthBuffer[thisone]);
+			
+			// Set up xOffsets.
+			xOffsets[0] = -offset;
+			xOffsets[1] = 0;
+			xOffsets[2] = offset;
+			xOffsets[3] = -offset;
+			xOffsets[4] = 0;
+			xOffsets[5] = offset;
+			xOffsets[6] = -offset;
+			xOffsets[7] = 0;
+			xOffsets[8] = offset;
+
+			// Set up yOffsets.
+			yOffsets[0] = offset;
+			yOffsets[1] = offset;
+			yOffsets[2] = offset;
+			yOffsets[3] = 0;
+			yOffsets[4] = 0;
+			yOffsets[5] = 0;
+			yOffsets[6] = -offset;
+			yOffsets[7] = -offset;
+			yOffsets[8] = -offset;
 
 			for (int i = 0; i < 9; ++i)
 			{
@@ -188,6 +239,8 @@ void Renderer::SetPixels(int threadIndex)
 			{
 				if (intersections[indexOfWinningObject] > cAccuracy)
 				{
+					_depthBuffer[thisone] = intersections[indexOfWinningObject];
+
 					// Determine the position and direction vectors at the point of intersection.
 
 					Vect intersectionPosition = camRayOrigin.Add(camRayDirection.ScalarMult(intersections[indexOfWinningObject]));
@@ -200,12 +253,18 @@ void Renderer::SetPixels(int threadIndex)
 					_pixels[thisone]._g = intersectionColor._g;
 					_pixels[thisone]._b = intersectionColor._b;
 				}
+				else
+				{
+					_depthBuffer[thisone] = 1000.0;
+				}
 			}
 			else
 			{
 				_pixels[thisone]._r = 0.0;
 				_pixels[thisone]._g = 0.0;
 				_pixels[thisone]._b = 0.0;
+			
+				_depthBuffer[thisone] = 1000.0;
 			}
 		}
 	}

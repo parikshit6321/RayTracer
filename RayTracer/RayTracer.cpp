@@ -3,6 +3,7 @@
 
 #include <windows.h>
 #include <tchar.h>
+#include <sstream>
 #include "RayTracer.h"
 #include "Renderer.h"
 

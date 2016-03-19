@@ -37,6 +37,7 @@ public:
 	Renderer();
 	void Initialize(void);
 	void Render(int frameNo);
+	double * GetDepthBuffer(void);
 	void MoveCamera(MoveDirection direction);
 	~Renderer();
 
@@ -46,6 +47,7 @@ private:
 		double accuracy, double ambientLight, int bounce);
 	Ray ComputeRefractionRay(int indexOfWinningObject, Vect intersectionPosition, Vect intersectionRayDirection);
 	void SetPixels(int threadIndex);
+	int CalculateOffset(double depth);
 	void PostProcessPixels(int threadIndex);
 	void PostProcess(void);
 	void SaveBMP(const char* filename, int w, int h, int dpi, Color * data);
@@ -53,6 +55,7 @@ private:
 
 	int							_numOfPixels;
 	Color *						_pixels;
+	double *					_depthBuffer;
 
 	Camera						_camera;
 	std::vector<Light *>		_lights;
